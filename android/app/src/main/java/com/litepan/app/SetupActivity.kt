@@ -6,6 +6,8 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.litepan.app.databinding.ActivitySetupBinding
 import java.net.HttpURLConnection
 import java.net.URL
@@ -21,6 +23,14 @@ class SetupActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySetupBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // 给根容器预留状态栏空间，避免顶栏与状态栏重叠
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            v.setPadding(v.paddingLeft, v.paddingTop + statusBars.top, v.paddingRight, v.paddingBottom)
+            insets
+        }
+        binding.root.requestApplyInsets()
 
         ServerPrefs.getServerUrl(this)
             .takeIf { it.isNotBlank() }

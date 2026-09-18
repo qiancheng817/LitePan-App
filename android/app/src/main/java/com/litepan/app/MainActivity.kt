@@ -36,6 +36,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.litepan.app.databinding.ActivityMainBinding
 import java.io.File
 import java.io.FileOutputStream
@@ -90,6 +92,14 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // 给根容器预留状态栏空间，避免网页顶栏与系统状态栏重叠
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            v.setPadding(v.paddingLeft, v.paddingTop + statusBars.top, v.paddingRight, v.paddingBottom)
+            insets
+        }
+        binding.root.requestApplyInsets()
 
         setupWebView()
         setupSwipeRefresh()

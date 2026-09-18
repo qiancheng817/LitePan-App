@@ -25,9 +25,10 @@ class SetupActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         // 给根容器预留状态栏空间，避免顶栏与状态栏重叠
+        // 注意：不能用 v.paddingTop + statusBars.top（会在每次 inset 重派发时累加）
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
-            val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
-            v.setPadding(v.paddingLeft, v.paddingTop + statusBars.top, v.paddingRight, v.paddingBottom)
+            val top = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            v.setPadding(0, top, 0, v.paddingBottom)
             insets
         }
         binding.root.requestApplyInsets()

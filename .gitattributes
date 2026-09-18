@@ -1,0 +1,18 @@
+# 仓库内文本统一以 LF 存储，跨平台一致
+* text=auto
+
+# 二进制资源，禁止换行符转换
+*.gz binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.jks binary
+*.keystore binary
+
+# Shell 脚本强制 LF
+gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf

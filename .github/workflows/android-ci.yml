@@ -1,0 +1,119 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build LitePan APK
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Restore release keystore
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HOME }}/.litepan-keystore
+          key: litepan-release-keystore-v1
+
+      - name: Prepare signing keystore
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.litepan-keystore"
+          KS="$HOME/.litepan-keystore/litepan.jks"
+          if [ ! -f "$KS" ]; then
+            keytool -genkeypair -v \
+              -keystore "$KS" \
+              -storepass "$KPASS" -keypass "$KPASS" \
+              -alias litepan -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=LitePan, OU=Personal, O=LitePan, L=NA, S=NA, C=CN"
+          fi
+          cat > keystore.properties <<EOF
+          storeFile=$KS
+          storePassword=$KPASS
+          keyAlias=litepan
+          keyPassword=$KPASS
+          EOF
+        env:
+          KPASS: litepan-personal
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=1.0.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug & release APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease :app:assembleDebug --stacktrace \
+            -PlitepanVersionName="${{ steps.ver.outputs.name }}" \
+            -PlitepanVersionCode="${{ steps.ver.outputs.code }}"
+
+      - name: Collect APKs
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk \
+            "LitePan-${{ steps.ver.outputs.name }}-release.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk \
+            "LitePan-${{ steps.ver.outputs.name }}-debug.apk"
+          ls -lh LitePan-*.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose \
+            "LitePan-${{ steps.ver.outputs.name }}-release.apk"
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LitePan-apk-${{ steps.ver.outputs.name }}
+          path: android/LitePan-*.apk
+          retention-days: 180
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: LitePan Android ${{ steps.ver.outputs.name }}
+
+          body: |
+            ## LitePan Android 客户端 ${{ steps.ver.outputs.name }}
+
+            ### 安装
+            1. 下载 `LitePan-${{ steps.ver.outputs.name }}-release.apk`
+            2. 在手机上打开并允许"安装未知来源应用"
+            3. 启动后填写你的 LitePan 服务端地址（默认端口 5211），例如 `http://192.168.1.10:5211`
+
+            release 包使用 CI 自动生成的密钥签名；debug 包仅供调试，包名带 `.debug` 后缀。
+          files: |
+            android/LitePan-${{ steps.ver.outputs.name }}-release.apk
+            android/LitePan-${{ steps.ver.outputs.name }}-debug.apk
+          fail_on_unmatched_files: true

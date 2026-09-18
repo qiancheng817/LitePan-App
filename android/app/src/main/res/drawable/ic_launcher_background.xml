@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 与前景 PNG 自带的蓝底 (#4C74DF) 完全一致，消除 Launcher mask 裁切时的白边 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#FFFFFF" />
+    <solid android:color="@color/brand" />
 </shape>

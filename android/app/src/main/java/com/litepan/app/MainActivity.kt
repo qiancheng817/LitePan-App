@@ -104,7 +104,6 @@ class MainActivity : AppCompatActivity() {
         binding.root.requestApplyInsets()
 
         setupWebView()
-        setupSwipeRefresh()
         setupErrorActions()
         setupMenu()
 
@@ -181,18 +180,6 @@ class MainActivity : AppCompatActivity() {
             if (URLUtil.isNetworkUrl(url)) {
                 enqueueSystemDownload(url, userAgent, contentDisposition, mimeType)
             }
-        }
-    }
-
-    private fun setupSwipeRefresh() {
-        binding.swipeRefresh.setColorSchemeColors(
-            ContextCompat.getColor(this, R.color.brand)
-        )
-        binding.swipeRefresh.setOnRefreshListener {
-            binding.webView.reload()
-        }
-        binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
-            binding.webView.scrollY > 0
         }
     }
 
@@ -313,7 +300,6 @@ class MainActivity : AppCompatActivity() {
 
         override fun onPageFinished(view: WebView?, url: String?) {
             binding.progressBar.visibility = View.GONE
-            binding.swipeRefresh.isRefreshing = false
             view?.evaluateJavascript(BLOB_HOOK_JS, null)
         }
 
@@ -323,7 +309,6 @@ class MainActivity : AppCompatActivity() {
             error: WebResourceError?
         ) {
             if (request?.isForMainFrame == true) {
-                binding.swipeRefresh.isRefreshing = false
                 binding.progressBar.visibility = View.GONE
                 showError(true, error?.description?.toString())
             }
